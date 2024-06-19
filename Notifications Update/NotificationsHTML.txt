@@ -1,0 +1,25 @@
+<b><font color="red">** SolarWinds - Windows Server Maintenance Events **</font> <br><br>
+
+
+<b><font color="orange">  Wed 4th Oct   05:00 - 08:00 UTC (06:00 - 09:00 BST)</font>  - Melville Gate Patching - SolarWinds will be available.<br>
+<b><font color="orange">  Wed 25th Oct  05:00 - 08:00 UTC (06:00 - 09:00 BST)</font>  - Macmerry Patching      - SolarWinds will be available.<br>
+<b><font color="orange">  Fri 10th Nov  05:30 - 09:00 UTC </font>  - SQL Servers Patching   - SolarWinds will be UNAVAILABLE throughout.<br>
+<br>
+<b><font color="green"> Engineering Guidelines.</font> SolarWinds will poll most objects:<br>
+	
+----> every 2 mins for response times and status (Up/Down)<br>
+----> every 10 mins for statistics (Details, CPU, Memory, Utilization, Errors etc)<br><br>
+
+SolarWinds Log Collectors will capture and process events from objects that have been configured for Syslog & Trap reporting.<br>
+
+----> Response times to the events above are dependent on Alert thresholds - and some operational delays - which are applied in order 
+to capture suboptimal operations that may indicate an issue or problem that needs investigating by the responsible team.<a href="https://natwest.atlassian.net/wiki/spaces/DNT/pages/1057237106/Alerting" target="_blank"> Alert Details</a>
+<br>
+<br>
+<b><font color="brown">Need to Raise a Task: </font>  
+<a href="https://rbos.service-now.com/myserviceportal?id=sc_cat_item&sys_id=f34c5041db35149091e2132a489619c7" target="_blank">NMS Task Request</a>  </b>--------<b>
+<a href="https://rbos.service-now.com/myserviceportal?id=sc_cat_item&sys_id=0ab0e065db18dc5091e2132a489619d8" target="_blank">ServiceNow Network Features</a>
+<br>
+<b><font color="brown">Need More Information:</font>
+<a href="https://natwest.atlassian.net/wiki/spaces/DNT/pages/926384259/SolarWinds" target="_blank">SolarWinds Confluence; Policies & Onboarding</a> </b>--------<b>
+<a href="https://solarwinds.web.rbsgrp.net/Orion/SummaryView.aspx?ViewID=944" target="_blank">Training Links and Knowledge Base Articles</a><br>
