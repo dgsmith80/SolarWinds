@@ -1,0 +1,31 @@
+SELECT
+OLM.NodeID AS [OLM NodeID]
+,OLM.OrionNode.Caption
+,OLM.OrionNode.IP_Address
+,STAT.StatusName
+,OLM.LicenseStatus
+,OLM.OrionNode.CustomProperties.LocationType
+,OLM.OrionNode.CustomProperties.Team
+,LastTrap.TimeLogged AS [LastTrapMessage]
+,LastSyslog.TimeLogged AS [LastSyslogMessage]
+FROM Orion.OLM.Nodes OLM
+JOIN Orion.StatusInfo STAT ON OLM.Status = STAT.StatusId
+LEFT OUTER JOIN (
+			SELECT T.NodeID
+				,MAX(T.DateTime) AS [TimeLogged]
+				,T.LogEntryTypeID AS [MessageType]
+			FROM Orion.OLM.LogEntry AS [T]
+			WHERE T.LogEntryTypeID = '2'
+			GROUP BY T.NodeID, T.LogEntryTypeID
+				) AS [LastTrap]
+			ON LastTrap.NodeID = OLM.NodeID
+LEFT OUTER JOIN (
+			SELECT S.NodeID
+				,MAX(S.DateTime) AS [TimeLogged]
+				,S.LogEntryTypeID AS [MessageType]
+			FROM Orion.OLM.LogEntry AS [S]
+			WHERE S.LogEntryTypeID = '1'
+			GROUP BY S.NodeID, S.LogEntryTypeID
+				) AS [LastSysLog]
+			ON LastSysLog.NodeID = OLM.NodeID
+WHERE OLM.LicenseStatus = 'Enabled'
