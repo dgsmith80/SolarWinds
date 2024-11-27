@@ -1,0 +1,15 @@
+SELECT CONCAT(CPL.Label, ' (', N.Caption, ')') AS [Name], CPS.DateTime, CPS.RawStatus AS [Value]
+FROM Orion.NPM.CustomPollerStatistics CPS
+INNER JOIN Orion.NPM.CustomPollerLabels CPL ON CPS.RowID = CPL.RowID AND CPS.CustomPollerAssignmentID = CPL.CustomPollerAssignmentID
+INNER JOIN Orion.Nodes N ON CPS.CustomPollerAssignment.NodeID = N.NodeID
+RIGHT JOIN 
+    (SELECT TOP 10 CONCAT(CPL.Label, ' (', N.Caption, ')') AS [Name], AVG(CPS.RawStatus) AS [Average Value]
+    FROM Orion.NPM.CustomPollerStatistics CPS
+    INNER JOIN Orion.NPM.CustomPollerLabels CPL ON CPS.RowID = CPL.RowID AND CPS.CustomPollerAssignmentID = CPL.CustomPollerAssignmentID
+    INNER JOIN Orion.Nodes N ON CPS.CustomPollerAssignment.NodeID = N.NodeID
+    WHERE  CPS.CustomPollerAssignment.CustomPollerName = 'nCipher_loadModule'
+    GROUP BY CPL.Label, N.Caption
+    ORDER BY AVG(CPS.RawStatus) DESC) Sub 
+ON CONCAT(CPL.Label, ' (', N.Caption, ')') = Sub.Name
+WHERE  CPS.CustomPollerAssignment.CustomPollerName = 'nCipher_loadModule'
+ORDER BY [Value]DESC
