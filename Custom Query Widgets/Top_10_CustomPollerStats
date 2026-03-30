@@ -11,5 +11,5 @@ RIGHT JOIN
     GROUP BY CPL.Label, N.Caption
     ORDER BY AVG(CPS.RawStatus) DESC) Sub 
 ON CONCAT(CPL.Label, ' (', N.Caption, ')') = Sub.Name
-WHERE  CPS.CustomPollerAssignment.CustomPollerName = 'nCipher_loadModule'
+WHERE  CPS.CustomPollerAssignment.CustomPollerName = 'POLLERNAME'
 ORDER BY [Value]DESC
