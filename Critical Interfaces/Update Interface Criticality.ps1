@@ -8,7 +8,7 @@ Date Last Updated:		14.06.2024
 Purpose:             	Update CriticalInterface Custom Property based on various conditions.
 
 Prerequisites:       	SwisPowerShell (SolarWinds Orion Module) https://www.powershellgallery.com/packages/SwisPowerShell
-                       	NWG_SolarWinds Registry Key
+                      SolarWinds Registry Key
 
 ##################################################################################################################################>
 
@@ -19,32 +19,23 @@ Prerequisites:       	SwisPowerShell (SolarWinds Orion Module) https://www.power
 ### File/Registry Locations
 $Log = "D:\SolarWinds\Automation\Logging\critical_interfaces_log.txt" ## This is the script log file
 $Path = "D:\SolarWinds\Automation\Production\Critical Interfaces" ## This is where the script is located
-$RegistryKey = "HKLM:\SOFTWARE\WOW6432Node\NWG_Solarwinds\" ## The registry contains common DNS Entries
+$RegistryKey = "HKLM:\SOFTWARE\WOW6432Node\Solarwinds\" ## The registry contains common DNS Entries
 
 
 ### Load Modules
-#Import-Module SQLServer  ## SQL Server Module not required for this script.
 Import-Module SwisPowerShell  ## SwisPowerShell Module (Used to execute SWQL Commands)
-Import-Module "D:\SolarWinds\Automation\PSModules\NWG-Orion.psm1" -Force  ## NWG Orion Module (Common Function Library)
+Import-Module "D:\SolarWinds\Automation\PSModules\Orion.psm1" -Force  ## Orion Module (Common Function Library)
 
 
 ### Server Details
 ## SWIS Connection Info
-$OrionServer = Get-ItemPropertyValue -Path $RegistryKey -Name NWG-SolarWinds-MLV # This attempts connection to the MLV 
-$SecondaryOrionServer = Get-ItemPropertyValue -Path $RegistryKey -Name NWG-SolarWinds-MAC
+$OrionServer = Get-ItemPropertyValue -Path $RegistryKey -Name NWG-SolarWinds-MLV # This attempts connection to MLV 
+$SecondaryOrionServer = Get-ItemPropertyValue -Path $RegistryKey -Name NWG-SolarWinds-MAC # This attempts connection to MAC
 $Swis = NWG-Orion-ConnectToSwis-Trusted -OrionServer $OrionServer -SecondaryOrionServer $SecondaryOrionServer
-
-## SQL Connection (Not required for this script)
-#$SQLServer = Get-ItemPropertyValue -Path $RegistryKey -Name NWG-SolarWinds-SQL-Orion
-#$DBName = 'SolarWindsOrion'
-#CD SQLServer:\SQL\$SQLServer\DMGBSQL01
-#CD databases\$DBName\tables\BSQL01
-#CD databases\$DBName\tables\
 
 
 ### Test SWIS Connection
- $SWISConnectionTest = "SELECT Name, InstanceType, InstanceSiteID FROM Orion.SwisFeature"
-
+$SWISConnectionTest = "SELECT Name, InstanceType, InstanceSiteID FROM Orion.SwisFeature"
 $test = Get-SwisData $Swis -Query $SWISConnectionTest
 
 
@@ -54,18 +45,15 @@ $eQuery = "SELECT e.EngineID FROM Orion.Engines AS e WHERE e.ServerType = 'Prima
 $mpeID = Get-SwisData -SwisConnection $swis -Query $eQuery
 
 ### Log Entry Update
-
 $datetime = Get-Date -Format "yyyy-MM-dd HH:mm"
 $timeutc = $datetime.ToUniversalTime()   
 $message = "$timeutc - INFO - Starting Critical Interface Update Process."
 $message >> $Log  #Saves output in log file
-
 New-SwisObject -SwisConnection $swis -EntityType Orion.Events -Properties @{ EventTime = $timeutc; EngineID = $mpeID; Message = "Starting Interface Criticality Update Process."; EventType = 1000; Acknowledged = $false }
 
 #region MONC & MONL Tags
 
 ### Get Critical Interfaces containing MONC & MONL Tags
-
 $monc_monl_query = @"
 SELECT icp.InterfaceID, icp.Interface.FullName, icp.CriticalInterface, icp.Uri
 FROM Orion.NPM.InterfacesCustomProperties icp
@@ -80,7 +68,6 @@ $crittrue = '1'
 
 
 ### Interface Count & Log
-
 $numOfInterfaces = $monc_monl_interfaces.Count
 if ($numOfInterfaces -eq $null)
 {
@@ -96,7 +83,6 @@ $updatedInterfaceCount = 0
 
 
 ### Each Loop 
-
 if($numOfInterfaces -gt 0)
 {
     foreach($i in $monc_monl_interfaces)
@@ -120,7 +106,6 @@ if($numOfInterfaces -gt 0)
 
 
 ### Log Entry Update
-
 $datetime = Get-Date
 $timeutc = $datetime.ToUniversalTime()
 $message = "$timeutc - INFO - Completed Critical Interface Update Process for $updatedInterfaceCount MONC & MONL Interfaces."
@@ -131,7 +116,6 @@ $message >> $Log  #Saves output in log file
 #region NTMS Devics
 
 ### Get Critical Interfaces for NTMS Devices
-
 $ntms_query = @"
 SELECT icp.InterfaceID, icp.Interface.FullName, icp.CriticalInterface, icp.Uri
 FROM Orion.NPM.InterfacesCustomProperties icp
@@ -162,7 +146,6 @@ $message >> $Log  #Saves output in log file
 $updatedInterfaceCount = 0
 
 ### Each Loop 
-
 if($numOfInterfaces -gt 0)
 {
     foreach($i in $ntms_interfaces)
@@ -186,7 +169,6 @@ if($numOfInterfaces -gt 0)
 
 
 ### Log Entry Update
-
 $datetime = Get-Date
 $timeutc = $datetime.ToUniversalTime()
 $message = "$timeutc - INFO - Completed Critical Interface Update Process for $updatedInterfaceCount NTMS Interfaces."
@@ -197,7 +179,6 @@ $message >> $Log  #Saves output in log file
 #region Security Interfaces
 
 ### Get Critical Interfaces for Security Devices
-
 $security_query = @"
 SELECT icp.InterfaceID, icp.Interface.FullName, icp.CriticalInterface, icp.Uri
 FROM Orion.NPM.InterfacesCustomProperties icp
@@ -215,7 +196,6 @@ $crittrue = '1'
 
 
 ### Interface Count & Log
-
 $numOfInterfaces = $security_interfaces.Count
 if ($numOfInterfaces -eq $null)
 {
@@ -230,7 +210,6 @@ $message >> $Log  #Saves output in log file
 $updatedInterfaceCount = 0
 
 ### Each Loop 
-
 if($numOfInterfaces -gt 0)
 {
     foreach($i in $security_interfaces)
@@ -254,7 +233,6 @@ if($numOfInterfaces -gt 0)
 
 
 ### Log Entry Update
-
 $datetime = Get-Date
 $timeutc = $datetime.ToUniversalTime()
 $message = "$timeutc - INFO - Completed Critical Interface Update Process for $updatedInterfaceCount Security Interfaces."
@@ -266,7 +244,6 @@ $message >> $Log  #Saves output in log file
 #region MON-IO Removal
 
 ### Get MON-IO Interfaces for All Interfaces flagged as Critical
-
 $monio_query = @"
 SELECT icp.InterfaceID, icp.Interface.FullName, icp.CriticalInterface, icp.Uri
 FROM Orion.NPM.InterfacesCustomProperties icp
@@ -281,7 +258,6 @@ $critfalse = '0'
 
 
 ### Interface Count & Log
-
 $numOfInterfaces = $monio_interfaces.Count
 if ($numOfInterfaces -eq $null)
 {
@@ -296,7 +272,6 @@ $message >> $Log  #Saves output in log file
 $updatedInterfaceCount = 0
 
 ### Each Loop 
-
 if($numOfInterfaces -gt 0)
 {
     foreach($i in $monio_interfaces)
@@ -320,7 +295,6 @@ if($numOfInterfaces -gt 0)
 
 
 ### Log Entry Update
-
 $datetime = Get-Date
 $timeutc = $datetime.ToUniversalTime()
 $message = "$timeutc - INFO - Completed Critical Interface Update Process for $updatedInterfaceCount MON-IO Interfaces."
@@ -330,10 +304,8 @@ $message >> $Log  #Saves output in log file
 
 
 ### Event Log Completion Update
-
 New-SwisObject -SwisConnection $swis -EntityType Orion.Events -Properties @{ EventTime = $utcDate; EngineID = $mpeID; Message = "Completed Interface Criticality Update Process."; EventType = 1000; Acknowledged = $false }
 
 
 ## Stop Debug Transcript (If Enabled)
-
 #Stop-Transcript
