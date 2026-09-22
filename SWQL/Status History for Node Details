@@ -1,0 +1,27 @@
+select
+
+    n.caption as [Device]
+    -- shows the current status icon
+    ,'/Orion/images/StatusIcons/Small-' + n.StatusIcon AS [_IconFor_Device]
+    -- makes a clickable link to the node details
+    ,n.DetailsUrl as [_linkfor_Device]
+    ,TOSTRING(TOLOCAL(history.DateTimeFrom)) AS [From]
+    ,ISNULL(TOSTRING(TOLOCAL(history.DateTimeUntil)),'Still') AS [Till]
+    ,s.StatusName AS [Status]
+    ,'/Orion/images/StatusIcons/Small-' + s.StatusName + '.gif' AS [_IconFor_Status]
+    ,history.TotalDurationMin AS [Min]
+
+FROM Orion.NetObjectDowntime history
+
+JOIN Orion.Nodes n ON history.NodeID = n.NodeID
+JOIN Orion.StatusInfo s ON history.State = s.StatusId
+
+WHERE
+
+    history.NodeId = ${nodeid} and history.EntityType = 'Orion.Nodes' and
+     history.TotalDurationMin > 0 and history.State <> 1
+
+--AND s.StatusName like '%${SEARCH_STRING}%'
+
+
+ORDER BY history.DateTimeFrom DESC
