@@ -1,11 +1,13 @@
+-- This SWQL Query can be used inside a SolarWinds Query Widget to be placed in a Summary Page or Dashboard. It shows the 'Last Trap Message' and 'Last Syslog Message'.
+--
 SELECT
 OLM.NodeID AS [OLM NodeID]
 ,OLM.OrionNode.Caption
 ,OLM.OrionNode.IP_Address
 ,STAT.StatusName
 ,OLM.LicenseStatus
-,OLM.OrionNode.CustomProperties.LocationType
-,OLM.OrionNode.CustomProperties.Team
+--,OLM.OrionNode.CustomProperties.LocationType --Optional line if CP's are used. Rename as appropriate.
+--,OLM.OrionNode.CustomProperties.Team --Optional line if CP's are used. Rename as appropriate.
 ,LastTrap.TimeLogged AS [LastTrapMessage]
 ,LastSyslog.TimeLogged AS [LastSyslogMessage]
 FROM Orion.OLM.Nodes OLM
