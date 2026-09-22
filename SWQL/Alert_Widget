@@ -1,0 +1,33 @@
+SELECT  
+o.AlertConfigurations.Name AS [ALERT NAME]  
+,'/Orion/NetPerfMon/ActiveAlertDetails.aspx?NetObject=AAT:' + ToString(o.AlertObjectID) AS [_LinkFor_ALERT NAME]  
+,CASE  
+WHEN o.AlertConfigurations.Severity = 2 THEN '/Orion/images/ActiveAlerts/Critical.png'  
+WHEN o.AlertConfigurations.Severity = 3 THEN '/Orion/images/ActiveAlerts/Serious.png'  
+WHEN o.AlertConfigurations.Severity = 1 THEN '/Orion/images/ActiveAlerts/Warning.png'  
+WHEN o.AlertConfigurations.Severity = 0 THEN '/Orion/images/ActiveAlerts/InformationalAlert.png'  
+WHEN o.AlertConfigurations.Severity = 4 THEN '/Orion/images/ActiveAlerts/Notice.png'  
+END AS [_iconfor_ALERT NAME]    
+,case   
+When o.RelatedNodeCaption!=EntityCaption THEN concat(isnull(o.RelatedNodeCaption,''),' - ',isnull(EntityCaption,''))
+else EntityCaption
+End AS [ALERT OBJECT] 
+,o.EntityDetailsURL AS [_LinkFor_ALERT OBJECT]
+,o.RelatedNodeDetailsURL AS [_LinkFor_RELATED NODE]  
+,case when o.AlertActive.TriggeredMessage like '%`%' then substring(o.alertactive.TriggeredMessage,0,charindex('`',o.alertactive.TriggeredMessage)) 
+else o.AlertActive.TriggeredMessage end AS [ALERT MESSAGE]   
+,ToLocal(o.AlertActive.TriggeredDateTime) AS [ALERT TRIGGER TIME] 
+,CASE  
+when minutediff(o.AlertActive.TriggeredDateTime,GETUTCDATE())>1440 then (tostring(round(minutediff(o.AlertActive.TriggeredDateTime,GETUTCDATE())/1440.0,1)) + ' Days')  
+when minutediff(o.AlertActive.TriggeredDateTime,GETUTCDATE())>60 then (tostring(round(minutediff(o.AlertActive.TriggeredDateTime,GETUTCDATE())/60.0,1)) + ' Hours')  
+else (tostring(minutediff(o.AlertActive.TriggeredDateTime,GETUTCDATE())) + ' Minutes')  
+end as [Time Active]  
+,'Ack' as [ACK]
+,'/Orion/Netperfmon/AckAlert.aspx?AlertDefID='+tostring(o.AlertActive.AlertActiveID) as [_linkfor_ACK]
+,aa.AcknowledgedBy  
+,ah.Message as [Note]  
+From Orion.AlertActive aa   
+join Orion.AlertObjects o on aa.alertobjectid=o.alertobjectid  
+left join orion.alerthistory ah on ah.AlertActiveID=aa.AlertActiveID and ah.EventType in (2,3)  
+--where (o.AlertConfigurations.Name like '%${SEARCH_STRING}%' or o.RelatedNodeCaption like '%${SEARCH_STRING}%' or o.EntityCaption like '%${SEARCH_STRING}%' or ah.Message like '%${SEARCH_STRING}%')  
+ORDER by o.AlertActive.TriggeredDateTime DESC
