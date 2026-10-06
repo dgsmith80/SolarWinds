@@ -1,0 +1,120 @@
+---------------------------------------------------
+-- Current Muted and Unmanaged Nodes (Only*)
+---------------------------------------------------
+-- Based on a request in Thwack Report Lab
+-- Limitations:
+--   *This custom query DOES NOT look at Unmanaged/Muted Groups, Interfaces, Applications, or Volumes
+
+SELECT
+        [UnmanagedMuted].[Type]
+      , [UnmanagedMuted].[Status]
+      , [UnmanagedMuted].[Node]
+      , [UnmanagedMuted].[_LinkFor_Node]
+--    , [UnmanagedMuted].[_IconFor_Node] -- Only need in Summary Query, not in Modern Dashboard
+      , [UnmanagedMuted].[From]
+--    , [UnmanagedMuted].[Extra] -- Used for Date Sorting, doesn't need to be displayed
+  	  , [UnmanagedMuted].[Days Since]
+      , [UnmanagedMuted].[To]
+  	  , [UnmanagedMuted].[Days Left]
+  	  , [UnmanagedMuted].[Reason]  -- Using Custom Property Value, Remove if not relevant.
+      , [UnmanagedMuted].[Account]
+      , [UnmanagedMuted].[CI_Status] -- Using Custom Property Value, Remove if not relevant.
+      , [UnmanagedMuted].[Team] -- Using Custom Property Value, Remove if not relevant.
+      , [UnmanagedMuted].[LocationType] -- Using Custom Property Value, Remove if not relevant.
+FROM (
+-- This first section is to list Nodes that are UnManaged
+      SELECT ' - U - ' AS [Type]
+			, [N].Caption AS [Node]
+            , [N].Status AS [Status]
+            ,'/Orion/images/StatusIcons/Small-' + [N].StatusLED AS [_IconFor_Node]
+            , [N].DetailsUrl AS [_LinkFor_Node]
+            , ToString([N].UnManageFrom) AS [From]
+            , TOLOCAL([N].UnManageFrom) AS [Extra]
+            ,CONCAT (
+                  DayDiff([N].UnManageFrom, GetDate())
+                  , ' days'
+                  ) AS [Days Since]
+            , CASE 
+                  WHEN ToString([N].UnManageUntil) = 'Jan  1 9999 12:00AM'
+                        THEN ' - Forever - '
+                  ELSE ToString([N].UnManageUntil)
+                  END AS [To]
+            , CASE
+				  WHEN ToString([N].UnManageUntil) = 'Jan  1 9999 12:00AM'
+                        THEN ' - Forever - '
+				  ELSE ToString(DayDiff(GetDate(), [N].UnManageUntil))
+				  END AS [Days Left]
+			, [N].CustomProperties.UnmanageStatus AS [Reason]
+            , [AE].AccountID AS [Account]
+            , [N].CustomProperties.CI_State AS [CI_Status]
+			, [N].CustomProperties.Team AS [Team]
+			, [N].CustomProperties.LocationType AS [LocationType]
+      FROM Orion.Nodes AS [N]
+      INNER JOIN Orion.StatusInfo AS [S] ON [N].Status = [S].StatusId
+      LEFT OUTER JOIN (
+            SELECT [AE].NetObjectID
+                  , Max([AE].AuditEventID) AS [AuditEventID]
+                  , Max([AE].TimeLoggedUtc) AS [TimeLoggedUtc]
+            FROM Orion.AuditingEvents AS [AE]
+            WHERE ActionTypeID IN (
+                        SELECT ActionTypeID
+                        FROM Orion.AuditingActionTypes
+                        WHERE ActionType = 'Orion.AlertSuppressionAdded'
+                              OR ActionType = 'Orion.AlertSuppressionChanged'
+                        )
+            GROUP BY [AE].NetObjectID
+            ) AS [LastMuteEvents]
+            ON LastMuteEvents.NetObjectID = [N].NodeID
+      LEFT OUTER JOIN Orion.AuditingEvents AS [AE]
+            ON [AE].AuditEventID = LastMuteEvents.AuditEventid
+      WHERE [N].UnManaged = 1
+      
+      UNION
+-- By adding a UNION we can merge in the second query which will list Nodes that are Suppressed      
+      (
+            SELECT ' - M - ' AS [Type]
+				  , [N].Caption AS [Node]
+                  , [N].Status AS [Status]
+                  ,'/Orion/images/StatusIcons/Small-' + [N].StatusLED AS [_IconFor_Node]
+                  , [N].DetailsUrl AS [_LinkFor_Node]
+                  , ToString([Supp].SuppressFrom) AS [From]				 
+                  , TOLOCAL([Supp].SuppressFrom) AS [Extra]
+				  , CONCAT (
+                        DayDiff([Supp].SuppressFrom, GetDate())
+                        , ' days'
+                        ) AS [Days Since]
+                  , ISNULL(ToString([Supp].SuppressUntil), ' - Forever - ') AS [To]
+				  , CASE
+						WHEN [Supp].SuppressUntil IS NULL OR [Supp].SuppressUntil = '9999-01-01 00:00:00' 
+							THEN ' - Forever - '
+						ELSE ToString(DayDiff(GetDate(), [Supp].SuppressUntil)) END AS [Days Left]
+			, [N].CustomProperties.UnmanageStatus AS [Reason]
+            , [AE].AccountID AS [Account]
+            , [N].CustomProperties.CI_State AS [CI_Status]
+			, [N].CustomProperties.Team AS [Team]
+			, [N].CustomProperties.LocationType AS [LocationType]
+            FROM Orion.Nodes AS [N]
+            INNER JOIN Orion.StatusInfo AS [S] ON [N].Status = [S].StatusId
+            INNER JOIN Orion.AlertSuppression [Supp]
+                  ON [Supp].EntityUri = [N].Uri
+            LEFT OUTER JOIN (
+                  SELECT [AE].NetObjectID
+                        , Max([AE].AuditEventID) AS [AuditEventID]
+                        , Max([AE].TimeLoggedUtc) AS [TimeLoggedUtc]
+                  FROM Orion.AuditingEvents AS [AE]
+                  WHERE ActionTypeID IN (
+                              SELECT ActionTypeID
+                              FROM Orion.AuditingActionTypes
+                              WHERE ActionType IN (
+                                          'Orion.AlertSuppressionAdded'
+                                          , 'Orion.AlertSuppressionChanged'
+                                          )
+                              )
+                  GROUP BY [AE].NetObjectID
+                  ) AS [LastMuteEvents]
+                  ON LastMuteEvents.NetObjectID = [N].NodeID
+            LEFT OUTER JOIN Orion.AuditingEvents AS [AE]
+                  ON [AE].AuditEventID = LastMuteEvents.AuditEventid
+            )
+      ) AS [UnmanagedMuted]
+ORDER BY [UnmanagedMuted].[Extra] DESC
