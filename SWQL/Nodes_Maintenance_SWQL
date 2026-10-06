@@ -23,7 +23,7 @@ SELECT
       , [UnmanagedMuted].[LocationType] -- Using Custom Property Value, Remove if not relevant.
 FROM (
 -- This first section is to list Nodes that are UnManaged
-      SELECT ' - U - ' AS [Type]
+     SELECT ' - U - ' AS [Type]
 			, [N].Caption AS [Node]
             , [N].Status AS [Status]
             ,'/Orion/images/StatusIcons/Small-' + [N].StatusLED AS [_IconFor_Node]
@@ -44,15 +44,22 @@ FROM (
                         THEN ' - Forever - '
 				  ELSE ToString(DayDiff(GetDate(), [N].UnManageUntil))
 				  END AS [Days Left]
-			, [N].CustomProperties.UnmanageStatus AS [Reason]
-            , [AE].AccountID AS [Account]
+            , CASE
+                  WHEN [SEA].ScheduleTask.Reason IS NOT NULL THEN [SEA].ScheduleTask.Reason
+                  ELSE [N].CustomProperties.UnmanageStatus
+                  END AS [Reason]
+            , CASE
+                  WHEN [SEA].ScheduleTask.AccountID IS NOT NULL THEN [SEA].ScheduleTask.AccountID
+                  ELSE [AE].AccountID
+                  END AS [Account]
             , [N].CustomProperties.CI_State AS [CI_Status]
 			, [N].CustomProperties.Team AS [Team]
 			, [N].CustomProperties.LocationType AS [LocationType]
       FROM Orion.Nodes AS [N]
+      LEFT JOIN Orion.ScheduleEntityAssignment AS [SEA] ON [N].Uri = [SEA].EntityUri
       INNER JOIN Orion.StatusInfo AS [S] ON [N].Status = [S].StatusId
       LEFT OUTER JOIN (
-            SELECT [AE].NetObjectID
+            SELECT AE.NetObjectID
                   , Max([AE].AuditEventID) AS [AuditEventID]
                   , Max([AE].TimeLoggedUtc) AS [TimeLoggedUtc]
             FROM Orion.AuditingEvents AS [AE]
@@ -72,31 +79,38 @@ FROM (
       UNION
 -- By adding a UNION we can merge in the second query which will list Nodes that are Suppressed      
       (
-            SELECT ' - M - ' AS [Type]
+           SELECT ' - M - ' AS [Type]
 				  , [N].Caption AS [Node]
                   , [N].Status AS [Status]
                   ,'/Orion/images/StatusIcons/Small-' + [N].StatusLED AS [_IconFor_Node]
                   , [N].DetailsUrl AS [_LinkFor_Node]
-                  , ToString([Supp].SuppressFrom) AS [From]				 
-                  , TOLOCAL([Supp].SuppressFrom) AS [Extra]
+                  , ToString(Supp.SuppressFrom) AS [From]				 
+                  , TOLOCAL(Supp.SuppressFrom) AS [Extra]
 				  , CONCAT (
-                        DayDiff([Supp].SuppressFrom, GetDate())
+                        DayDiff(Supp.SuppressFrom, GetDate())
                         , ' days'
                         ) AS [Days Since]
-                  , ISNULL(ToString([Supp].SuppressUntil), ' - Forever - ') AS [To]
+                  , ISNULL(ToString(Supp.SuppressUntil), ' - Forever - ') AS [To]
 				  , CASE
-						WHEN [Supp].SuppressUntil IS NULL OR [Supp].SuppressUntil = '9999-01-01 00:00:00' 
+						WHEN Supp.SuppressUntil IS NULL OR Supp.SuppressUntil = '9999-01-01 00:00:00' 
 							THEN ' - Forever - '
-						ELSE ToString(DayDiff(GetDate(), [Supp].SuppressUntil)) END AS [Days Left]
-			, [N].CustomProperties.UnmanageStatus AS [Reason]
-            , [AE].AccountID AS [Account]
+						ELSE ToString(DayDiff(GetDate(), Supp.SuppressUntil)) END AS [Days Left]
+            , CASE
+                  WHEN [SEA].ScheduleTask.Reason IS NOT NULL THEN [SEA].ScheduleTask.Reason
+                  ELSE [N].CustomProperties.UnmanageStatus
+                  END AS [Reason]
+            , CASE
+                  WHEN [SEA].ScheduleTask.AccountID IS NOT NULL THEN [SEA].ScheduleTask.AccountID
+                  ELSE [AE].AccountID
+                  END AS [Account]
             , [N].CustomProperties.CI_State AS [CI_Status]
 			, [N].CustomProperties.Team AS [Team]
 			, [N].CustomProperties.LocationType AS [LocationType]
             FROM Orion.Nodes AS [N]
+            LEFT JOIN Orion.ScheduleEntityAssignment AS [SEA] ON [N].Uri = [SEA].EntityUri
             INNER JOIN Orion.StatusInfo AS [S] ON [N].Status = [S].StatusId
-            INNER JOIN Orion.AlertSuppression [Supp]
-                  ON [Supp].EntityUri = [N].Uri
+            INNER JOIN Orion.AlertSuppression Supp
+                  ON Supp.EntityUri = [N].Uri
             LEFT OUTER JOIN (
                   SELECT [AE].NetObjectID
                         , Max([AE].AuditEventID) AS [AuditEventID]
